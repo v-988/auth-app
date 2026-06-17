@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuthKit — JWT Auth Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161a24;
+      --surface2: #1e2433;
+      --border: #2a3047;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --success: #34d399;
+      --danger: #f87171;
+      --warning: #fbbf24;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 12px;
+      --font: 'Inter', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+    .avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.75rem;
+    }
+
+    /* ── Layout ── */
+    .main {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      height: calc(100vh - 60px);
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .nav-section {
+      padding: 0.5rem 1rem 0.25rem;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 1rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .nav-item:hover { color: var(--text); background: var(--surface2); }
+    .nav-item.active { color: var(--accent2); border-left-color: var(--accent); background: rgba(108,99,255,0.08); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+
+    /* ── Content ── */
+    .content {
+      overflow-y: auto;
+      padding: 2rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── Forms ── */
+    .form-row { margin-bottom: 1rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--muted); margin-bottom: 6px; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="file"],
+    input[type="number"],
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input[type="file"] { padding: 7px 12px; cursor: pointer; }
+
+    .form-hint { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #7c73ff; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-ghost:hover { background: var(--surface2); }
+    .btn-danger { background: #7f1d1d; color: var(--danger); border: 1px solid var(--danger); }
+    .btn-danger:hover { background: #991b1b; }
+
+    /* ── Alerts ── */
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .alert.show { display: block; }
+    .alert-success { background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); color: var(--success); }
+    .alert-error { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--danger); }
+
+    /* ── Token display ── */
+    .token-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.72rem;
+      font-family: 'Courier New', monospace;
+      word-break: break-all;
+      color: var(--accent2);
+      line-height: 1.5;
+      max-height: 80px;
+      overflow-y: auto;
+    }
+
+    /* ── User table ── */
+    .user-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .user-table th {
+      text-align: left; padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem; color: var(--muted); font-weight: 600; letter-spacing: 0.04em;
+    }
+    .user-table td { padding: 10px 12px; border-bottom: 1px solid rgba(42,48,71,0.5); }
+    .user-table tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 100px;
+      font-size: 0.7rem; font-weight: 600; background: rgba(108,99,255,0.15); color: var(--accent2);
+    }
+
+    /* ── Pagination ── */
+    .pagination { display: flex; align-items: center; gap: 8px; margin-top: 1rem; font-size: 0.85rem; }
+    .page-info { color: var(--muted); }
+
+    /* ── Search row ── */
+    .search-row {
+      display: flex; gap: 8px; margin-bottom: 1rem; align-items: flex-end;
+    }
+    .search-row input { flex: 1; }
+
+    /* ── Status indicator ── */
+    .status-row {
+      display: flex; align-items: center; gap: 8px; font-size: 0.8rem;
+      padding: 6px 10px; border-radius: 6px;
+      background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2);
+      color: var(--success); margin-bottom: 1rem;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 4px; margin-bottom: 1.25rem; }
+    .tab {
+      padding: 7px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 500;
+      cursor: pointer; border: 1px solid transparent; color: var(--muted); transition: all 0.15s;
+    }
+    .tab.active { background: var(--surface2); border-color: var(--border); color: var(--text); }
+
+    /* ── Two col ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+    /* ── Upload area ── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: var(--radius);
+      padding: 2rem; text-align: center; cursor: pointer; transition: all 0.15s;
+    }
+    .upload-zone:hover { border-color: var(--accent); background: rgba(108,99,255,0.04); }
+    .upload-zone p { color: var(--muted); font-size: 0.875rem; margin-top: 8px; }
+    .upload-icon { font-size: 2rem; }
+    .file-result { margin-top: 1rem; padding: 12px; background: var(--surface2); border-radius: 8px; font-size: 0.82rem; line-height: 1.7; }
+
+    /* ── Section headings ── */
+    .page-title { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.25rem; }
+    .page-subtitle { color: var(--muted); font-size: 0.875rem; margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><div class="logo-dot"></div> AuthKit</div>
+  <div class="header-user" id="headerUser" style="display:none">
+    <div class="avatar" id="headerAvatar">?</div>
+    <span id="headerName">—</span>
+    <button class="btn btn-ghost" style="padding:5px 12px;font-size:0.8rem" onclick="logout()">Sign out</button>
+  </div>
+</header>
+
+<div class="main">
+  <nav id="sidebar" style="display:none">
+    <div class="nav-section">Account</div>
+    <div class="nav-item active" onclick="showView('dashboard')" id="nav-dashboard">
+      <span class="nav-icon">⚡</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showView('profile')" id="nav-profile">
+      <span class="nav-icon">👤</span> Profile
+    </div>
+    <div class="nav-section" style="margin-top:0.5rem">Features</div>
+    <div class="nav-item" onclick="showView('users')" id="nav-users">
+      <span class="nav-icon">👥</span> Users
+    </div>
+    <div class="nav-item" onclick="showView('upload')" id="nav-upload">
+      <span class="nav-icon">📎</span> File Upload
+    </div>
+    <div class="nav-section" style="margin-top:0.5rem">Docs</div>
+    <div class="nav-item" onclick="showView('token')" id="nav-token">
+      <span class="nav-icon">🔑</span> JWT Inspector
+    </div>
+  </nav>
+
+  <div class="content">
+
+    <!-- ── Auth ── -->
+    <div class="view active" id="view-auth">
+      <div style="max-width:420px;margin:2rem auto">
+        <div class="page-title">Welcome back</div>
+        <div class="page-subtitle">Sign in or create a free account.</div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('login')">Sign in</div>
+          <div class="tab" onclick="switchTab('register')">Register</div>
+        </div>
+
+        <!-- Login -->
+        <div id="tabLogin">
+          <div id="loginAlert" class="alert"></div>
+          <div class="form-row">
+            <label>Email</label>
+            <input type="email" id="loginEmail" placeholder="you@example.com" />
+          </div>
+          <div class="form-row">
+            <label>Password</label>
+            <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="doLogin()" id="loginBtn">Sign in →</button>
+        </div>
+
+        <!-- Register -->
+        <div id="tabRegister" style="display:none">
+          <div id="registerAlert" class="alert"></div>
+          <div class="form-row">
+            <label>Full name</label>
+            <input type="text" id="regName" placeholder="Jane Smith" />
+          </div>
+          <div class="form-row">
+            <label>Email</label>
+            <input type="email" id="regEmail" placeholder="you@example.com" />
+          </div>
+          <div class="form-row">
+            <label>Password</label>
+            <input type="password" id="regPassword" placeholder="Min 8 chars, 1 uppercase, 1 number" />
+            <div class="form-hint">At least 8 characters, one uppercase letter, one number.</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%" onclick="doRegister()" id="registerBtn">Create account →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Dashboard ── -->
+    <div class="view" id="view-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-subtitle">Your authentication is working. Here's a quick overview.</div>
+      <div class="status-row"><div class="status-dot"></div> Connected — JWT validated</div>
+
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">🔐 Auth Flow</div>
+          <ol style="padding-left:1.2rem;font-size:0.85rem;line-height:2;color:var(--muted)">
+            <li>User submits credentials</li>
+            <li>bcrypt verifies password hash</li>
+            <li>Server signs JWT with secret</li>
+            <li>Client stores token</li>
+            <li>Token sent on every protected request</li>
+            <li>Middleware verifies on each call</li>
+          </ol>
+        </div>
+        <div class="card">
+          <div class="card-title">📡 API Endpoints</div>
+          <div style="font-size:0.8rem;font-family:'Courier New',monospace;line-height:2.2">
+            <div><span style="color:var(--success)">POST</span> <span style="color:var(--accent2)">/api/auth/register</span></div>
+            <div><span style="color:var(--success)">POST</span> <span style="color:var(--accent2)">/api/auth/login</span></div>
+            <div style="margin-top:4px;padding-top:4px;border-top:1px solid var(--border)">
+              <span style="color:var(--warning)">🔒 Protected</span>
+            </div>
+            <div><span style="color:var(--accent)">GET</span>&nbsp; <span style="color:var(--accent2)">/api/protected/me</span></div>
+            <div><span style="color:var(--accent)">GET</span>&nbsp; <span style="color:var(--accent2)">/api/protected/users</span></div>
+            <div><span style="color:var(--success)">POST</span> <span style="color:var(--accent2)">/api/protected/upload</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Profile ── -->
+    <div class="view" id="view-profile">
+      <div class="page-title">Profile</div>
+      <div class="page-subtitle">Your account details from the server.</div>
+      <div id="profileAlert" class="alert"></div>
+      <div class="card">
+        <div class="card-title">👤 Account Info</div>
+        <div id="profileContent" style="font-size:0.875rem;line-height:2;color:var(--muted)">Loading…</div>
+      </div>
+    </div>
+
+    <!-- ── Users ── -->
+    <div class="view" id="view-users">
+      <div class="page-title">Users</div>
+      <div class="page-subtitle">Search and paginate all registered users.</div>
+      <div id="usersAlert" class="alert"></div>
+      <div class="card">
+        <div class="search-row">
+          <div style="flex:1">
+            <input type="text" id="userSearch" placeholder="Search by name or email…" oninput="loadUsers(1)" />
+          </div>
+          <div style="width:70px">
+            <input type="number" id="userLimit" value="5" min="1" max="20" placeholder="Limit" onchange="loadUsers(1)" />
+          </div>
+          <button class="btn btn-primary" onclick="loadUsers(1)">Search</button>
+        </div>
+        <div id="usersTableWrap">
+          <table class="user-table">
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Email</th><th>Created</th></tr>
+            </thead>
+            <tbody id="usersBody"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No users yet.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+
+    <!-- ── Upload ── -->
+    <div class="view" id="view-upload">
+      <div class="page-title">File Upload</div>
+      <div class="page-subtitle">Upload images or PDFs. Requires valid JWT.</div>
+      <div id="uploadAlert" class="alert"></div>
+      <div class="card">
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-icon">📁</div>
+          <p>Click to select a file</p>
+          <p style="font-size:0.75rem;margin-top:4px">JPEG, PNG, GIF, WEBP, PDF — max 5 MB</p>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,.pdf" style="display:none" onchange="doUpload(this)" />
+        <div id="fileResult"></div>
+      </div>
+    </div>
+
+    <!-- ── JWT Inspector ── -->
+    <div class="view" id="view-token">
+      <div class="page-title">JWT Inspector</div>
+      <div class="page-subtitle">Decode and inspect your current token.</div>
+      <div class="card">
+        <div class="card-title">🔑 Raw Token</div>
+        <div class="token-box" id="rawToken">—</div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">📋 Header</div>
+          <pre id="jwtHeader" style="font-size:0.8rem;line-height:1.6;color:var(--accent2)">—</pre>
+        </div>
+        <div class="card">
+          <div class="card-title">📦 Payload</div>
+          <pre id="jwtPayload" style="font-size:0.8rem;line-height:1.6;color:var(--success)">—</pre>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">⏱ Expiry</div>
+        <div id="jwtExpiry" style="font-size:0.85rem;color:var(--muted)">—</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:5000';
+  let currentPage = 1;
+
+  // ── Token helpers ────────────────────────────────────────────────────────
+
+  function getToken() { return localStorage.getItem('authkit_token'); }
+  function setToken(t) { localStorage.setItem('authkit_token', t); }
+  function clearToken() { localStorage.removeItem('authkit_token'); }
+
+  function authHeaders() {
+    return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` };
+  }
+
+  // ── Tab switching ────────────────────────────────────────────────────────
+
+  function switchTab(t) {
+    document.getElementById('tabLogin').style.display = t === 'login' ? '' : 'none';
+    document.getElementById('tabRegister').style.display = t === 'register' ? '' : 'none';
+    document.querySelectorAll('.tab').forEach((el, i) => {
+      el.classList.toggle('active', (i === 0 && t === 'login') || (i === 1 && t === 'register'));
+    });
+  }
+
+  // ── Alerts ───────────────────────────────────────────────────────────────
+
+  function showAlert(id, msg, type = 'error') {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.className = `alert show alert-${type}`;
+  }
+  function hideAlert(id) { document.getElementById(id).className = 'alert'; }
+
+  // ── Register ─────────────────────────────────────────────────────────────
+
+  async function doRegister() {
+    hideAlert('registerAlert');
+    const btn = document.getElementById('registerBtn');
+    btn.disabled = true; btn.textContent = 'Creating account…';
+
+    try {
+      const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('regName').value,
+          email: document.getElementById('regEmail').value,
+          password: document.getElementById('regPassword').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert('registerAlert', data.error || (data.errors && data.errors.join(' ')) || 'Registration failed.');
+      } else {
+        setToken(data.token);
+        initApp(data.user);
+      }
+    } catch {
+      showAlert('registerAlert', 'Cannot reach server. Is it running on port 5000?');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Create account →';
+    }
+  }
+
+  // ── Login ────────────────────────────────────────────────────────────────
+
+  async function doLogin() {
+    hideAlert('loginAlert');
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true; btn.textContent = 'Signing in…';
+
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: document.getElementById('loginEmail').value,
+          password: document.getElementById('loginPassword').value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showAlert('loginAlert', data.error || 'Login failed.');
+      } else {
+        setToken(data.token);
+        initApp(data.user);
+      }
+    } catch {
+      showAlert('loginAlert', 'Cannot reach server. Is it running on port 5000?');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Sign in →';
+    }
+  }
+
+  // ── Logout ───────────────────────────────────────────────────────────────
+
+  function logout() {
+    clearToken();
+    document.getElementById('headerUser').style.display = 'none';
+    document.getElementById('sidebar').style.display = 'none';
+    showView('auth');
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+
+  function initApp(user) {
+    const avatar = user.name.charAt(0).toUpperCase();
+    document.getElementById('headerAvatar').textContent = avatar;
+    document.getElementById('headerName').textContent = user.name;
+    document.getElementById('headerUser').style.display = 'flex';
+    document.getElementById('sidebar').style.display = 'flex';
+    showView('dashboard');
+  }
+
+  // ── View routing ─────────────────────────────────────────────────────────
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${name}`).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navEl = document.getElementById(`nav-${name}`);
+    if (navEl) navEl.classList.add('active');
+
+    if (name === 'profile') loadProfile();
+    if (name === 'users') loadUsers(1);
+    if (name === 'token') loadToken();
+  }
+
+  // ── Profile ──────────────────────────────────────────────────────────────
+
+  async function loadProfile() {
+    hideAlert('profileAlert');
+    try {
+      const res = await fetch(`${API}/api/protected/me`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) { showAlert('profileAlert', data.error); return; }
+      const u = data.user;
+      document.getElementById('profileContent').innerHTML = `
+        <div style="display:grid;grid-template-columns:140px 1fr;gap:6px 0">
+          <span style="color:var(--muted)">ID</span><span>${u.id}</span>
+          <span style="color:var(--muted)">Name</span><span>${u.name}</span>
+          <span style="color:var(--muted)">Email</span><span>${u.email}</span>
+          <span style="color:var(--muted)">Joined</span><span>${new Date(u.createdAt).toLocaleString()}</span>
+        </div>`;
+    } catch {
+      showAlert('profileAlert', 'Server unreachable.');
+    }
+  }
+
+  // ── Users ─────────────────────────────────────────────────────────────────
+
+  async function loadUsers(page = 1) {
+    currentPage = page;
+    hideAlert('usersAlert');
+    const search = encodeURIComponent(document.getElementById('userSearch').value);
+    const limit = document.getElementById('userLimit').value || 5;
+
+    try {
+      const res = await fetch(`${API}/api/protected/users?search=${search}&page=${page}&limit=${limit}`, {
+        headers: authHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) { showAlert('usersAlert', data.error); return; }
+
+      const tbody = document.getElementById('usersBody');
+      if (!data.users.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:1.5rem">No users found.</td></tr>';
+      } else {
+        tbody.innerHTML = data.users.map(u => `
+          <tr>
+            <td><span class="badge">#${u.id}</span></td>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td style="color:var(--muted)">${new Date(u.createdAt).toLocaleDateString()}</td>
+          </tr>`).join('');
+      }
+
+      const p = data.pagination;
+      document.getElementById('pagination').innerHTML = `
+        <button class="btn btn-ghost" style="padding:5px 12px" onclick="loadUsers(${p.page - 1})" ${p.page <= 1 ? 'disabled' : ''}>← Prev</button>
+        <span class="page-info">Page ${p.page} of ${p.totalPages} &mdash; ${p.total} users</span>
+        <button class="btn btn-ghost" style="padding:5px 12px" onclick="loadUsers(${p.page + 1})" ${p.page >= p.totalPages ? 'disabled' : ''}>Next →</button>`;
+    } catch {
+      showAlert('usersAlert', 'Server unreachable.');
+    }
+  }
+
+  // ── Upload ────────────────────────────────────────────────────────────────
+
+  async function doUpload(input) {
+    hideAlert('uploadAlert');
+    const file = input.files[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    try {
+      const res = await fetch(`${API}/api/protected/upload`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${getToken()}` },
+        body: fd
+      });
+      const data = await res.json();
+      if (!res.ok) { showAlert('uploadAlert', data.error); return; }
+
+      const f = data.file;
+      document.getElementById('fileResult').innerHTML = `
+        <div class="file-result" style="color:var(--success)">
+          ✅ Uploaded successfully<br>
+          <span style="color:var(--muted)">Original:</span> ${f.originalName}<br>
+          <span style="color:var(--muted)">Saved as:</span> ${f.savedAs}<br>
+          <span style="color:var(--muted)">Size:</span> ${(f.size / 1024).toFixed(1)} KB<br>
+          <span style="color:var(--muted)">Type:</span> ${f.mimetype}
+        </div>`;
+    } catch {
+      showAlert('uploadAlert', 'Server unreachable.');
+    }
+    input.value = '';
+  }
+
+  // ── JWT Inspector ─────────────────────────────────────────────────────────
+
+  function loadToken() {
+    const token = getToken();
+    if (!token) return;
+    document.getElementById('rawToken').textContent = token;
+
+    try {
+      const [h, p] = token.split('.');
+      const header = JSON.parse(atob(h));
+      const payload = JSON.parse(atob(p));
+
+      document.getElementById('jwtHeader').textContent = JSON.stringify(header, null, 2);
+      document.getElementById('jwtPayload').textContent = JSON.stringify(payload, null, 2);
+
+      const exp = new Date(payload.exp * 1000);
+      const now = new Date();
+      const diff = Math.round((exp - now) / 1000 / 60);
+      document.getElementById('jwtExpiry').innerHTML =
+        `Expires: <strong style="color:var(--text)">${exp.toLocaleString()}</strong> &mdash; ` +
+        (diff > 0 ? `<span style="color:var(--success)">valid for ${diff} min</span>` : `<span style="color:var(--danger)">expired</span>`);
+    } catch {
+      document.getElementById('jwtHeader').textContent = 'Could not decode.';
+    }
+  }
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+
+  window.addEventListener('DOMContentLoaded', () => {
+    const token = getToken();
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        if (payload.exp * 1000 > Date.now()) {
+          initApp(payload);
+          return;
+        }
+      } catch {}
+      clearToken();
+    }
+  });
+</script>
+</body>
+</html>
